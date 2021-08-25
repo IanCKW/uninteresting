@@ -24,7 +24,7 @@ void insert_node_at(list *lst, int index, int data) {
     node *next = (*replaced).next;
 
     node *replacement;
-    replacement = malloc(2);
+    replacement = malloc(4);
     (*replacement).data = data;
     (*previous).next = replacement;
     (*replacement).next = next;
