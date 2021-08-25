@@ -19,7 +19,7 @@ void insert_node_at(list *lst, int index, int data) {
     {
         current = (*current).next;
     }
-    node *previous = &current;
+    node *previous = current;
     node *replaced = (*previous).next;
     node *next = (*replaced).next;
 
