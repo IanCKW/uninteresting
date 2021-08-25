@@ -1,24 +1,35 @@
 /*************************************
 * Lab 1 Exercise 2
-* Name:
-* Student No:
-* Lab Group:
+* Name: Ian Chan Kit Wai
+* Student No: A0197089J
+* Lab Group: 11
 *************************************/
 
 #include "node.h"
-
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-// Add in your implementation below to the respective functions
-// Feel free to add any headers you deem fit (although you do not need to)
-
-// Inserts a new node with data value at index (counting from head
-// starting at 0).
+// Inserts a new node with data value at index (counting from head starting at 0).
 // Note: index is guaranteed to be valid.
 void insert_node_at(list *lst, int index, int data) {
+    node *current = (*lst).head;
+    for (int i = 0; i < index - 1; i++)
+    {
+        current = (*current).next;
+    }
+    node *previous = &current;
+    node *replaced = (*previous).next;
+    node *next = (*replaced).next;
+
+    node *replacement;
+    replacement = malloc(2);
+    (*replacement).data = data;
+    (*previous).next = &replacement;
+    (*replacement).next = &next;
+
+    printf("hello there");
 }
 
 // Deletes node at index (counting from head starting from 0).
