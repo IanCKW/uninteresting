@@ -22,6 +22,7 @@
 void run_instruction(list *lst, int instr);
 void print_list(list *lst);
 
+
 int main() {
     list *lst = (list *)malloc(sizeof(list));
     lst->head = NULL;
