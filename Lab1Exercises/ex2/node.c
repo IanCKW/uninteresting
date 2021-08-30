@@ -103,26 +103,10 @@ void reverse_list(list *lst) {
 // Resets list to an empty state (no nodes) and frees
 // any allocated memory in the process
 void reset_list(list *lst) {
-    if (lst->head == NULL){
-        return;
-    }
     int list_size = get_size(lst);
-    if (list_size==1){
-        node* curr = lst->head;
-        free(curr);
-        lst->head = NULL;
-        return;
+    for (int i=0;i<list_size;i++){
+        delete_node_at(lst,0);
     }
-    node* curr = lst->head;
-    node * next = curr->next;
-    for (int i=0; i<list_size-2;i++){
-        free(curr->next);
-        curr = next;
-        next = next->next;
-    }
-    free(next);
-    free(curr);
-    lst->head = NULL;
 }
 
 int get_size(list *lst){
