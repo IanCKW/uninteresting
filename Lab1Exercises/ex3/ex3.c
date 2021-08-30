@@ -87,7 +87,7 @@ void run_instruction(list *lst, int instr, char line[]) {
             reset_list(lst);
             break;
         case SUM_LIST:
-            printf("%d\n",sum_list(lst));
+            printf("%ld\n",sum_list(lst));
             break;
         case MAP:
             sscanf(line, "%d %d", &instruction, &map_func);
