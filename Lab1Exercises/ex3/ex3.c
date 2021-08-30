@@ -45,7 +45,9 @@ int main(int argc, char **argv) { // double pointer as it's a nested array
     // Rest of code logic here
     FILE *fPointer;
     fPointer = fopen(fname,"r"); // returns a pointer to the file descriptor. "r" means read only
-    
+    if (fPointer == NULL){
+        return;
+    }
     list *lst = (list *)malloc(sizeof(list));
     lst->head = NULL;
 

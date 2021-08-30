@@ -20,7 +20,7 @@ node* get_next(list* lst, int index);
 // Note: index is guaranteed to be valid.
 void insert_node_at(list *lst, int index, int data) {
     
-    node *replacement = malloc(4);
+    node *replacement = malloc(8);
     (*replacement).next = NULL;
     (*replacement).data = data;
     int size_of_list = get_size(lst);
