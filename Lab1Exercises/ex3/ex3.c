@@ -4,7 +4,6 @@
 * Student No: A0197089J
 * Lab Group: 11
 *************************************/
-#include <conio.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -60,7 +59,7 @@ int main(int argc, char **argv) { // double pointer as it's a nested array
     
     reset_list(lst);
     free(lst);
-    fclose(fname);
+    fclose(fPointer);
 }
 
 void run_instruction(list *lst, int instr, char line[]) {
