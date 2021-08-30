@@ -60,9 +60,8 @@ void delete_node_at(list *lst, int index) {
     node* deleted = get_next(lst, index);
     int size_of_list = get_size(lst);
     if(size_of_list == 1){
+        free(lst->head);
         lst->head = NULL;
-        free(deleted->next);
-        free(deleted);
         return;
     }
     else if (index == 0){
@@ -72,7 +71,6 @@ void delete_node_at(list *lst, int index) {
         node *prev = get_previous(lst, index);
         prev->next = deleted->next; // if index is at the end of the list, prev-> will change to lst.head
     }
-    free(deleted);
     free(deleted);
     size_of_list--; // the list has shrunk by 1
     node *tail_node_pointer = get_tail(lst, size_of_list);
@@ -111,29 +109,10 @@ void reverse_list(list *lst) {
 // Resets list to an empty state (no nodes) and frees
 // any allocated memory in the process
 void reset_list(list *lst) {
-    if (lst->head == NULL){
-        return;
-    }
     int list_size = get_size(lst);
-    if (list_size==1){
-        node* curr = lst->head;
-        free(curr->next);
-        free(curr);
-        lst->head = NULL;
-        return;
+    for (int i=0;i<list_size;i++){
+        delete_node_at(lst,0);
     }
-    node* curr = lst->head;
-    node * next = curr->next;
-    for (int i=0; i<list_size-2;i++){
-        free(curr->next);
-        curr = next;
-        next = next->next;
-    }
-    free(next->next);
-    free(next);
-    free(curr->next);
-    free(curr);
-    lst->head = NULL;
 }
 
 int get_size(list *lst){
