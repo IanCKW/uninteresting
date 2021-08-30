@@ -53,8 +53,8 @@ void delete_node_at(list *lst, int index) {
     node* deleted = get_next(lst, index);
     int size_of_list = get_size(lst);
     if(size_of_list == 1){
-        lst->head = NULL;
         free(lst->head);
+        lst->head = NULL;
         return;
     }
     else if (index == 0){
