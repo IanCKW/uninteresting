@@ -28,6 +28,7 @@ void insert_node_at(list *lst, int index, int data) {
     if (index < size_of_list){
         node *next_node = get_next(lst, index);
         replacement->next = next_node;
+        //printf("issue is not here index < size");
     }
     if (index == 0){
         lst->head = replacement;
@@ -35,6 +36,7 @@ void insert_node_at(list *lst, int index, int data) {
     if (index > 0){
         node *previous_node = get_previous(lst, index);
         previous_node->next = replacement;
+        //printf("issue is not here index > 0");
     }
     size_of_list++; // the list has grown by 1
     node *tail_node_pointer = get_tail(lst, size_of_list);
@@ -45,11 +47,14 @@ void insert_node_at(list *lst, int index, int data) {
 // Deletes node at index (counting from head starting from 0).
 // Note: index is guarenteed to be valid.
 void delete_node_at(list *lst, int index) {
+    if (lst->head == NULL){
+        return;
+    }
     node* deleted = get_next(lst, index);
     int size_of_list = get_size(lst);
     if(size_of_list == 1){
         lst->head = NULL;
-        deleted->next = NULL;
+        free(deleted->next);
         free(deleted);
         return;
     }
@@ -60,7 +65,7 @@ void delete_node_at(list *lst, int index) {
         node *prev = get_previous(lst, index);
         prev->next = deleted->next; // if index is at the end of the list, prev-> will change to lst.head
     }
-    deleted->next = NULL;
+    free(deleted);
     free(deleted);
     size_of_list--; // the list has shrunk by 1
     node *tail_node_pointer = get_tail(lst, size_of_list);
@@ -80,7 +85,7 @@ void rotate_list(list *lst, int offset) {
 // becoming the new head node.
 void reverse_list(list *lst) {
     int size_of_list = get_size(lst);
-    if (size_of_list == 1) {
+    if (lst->head == NULL | size_of_list == 1) {
         return;
     }
     node* curr = lst->head;
@@ -99,6 +104,9 @@ void reverse_list(list *lst) {
 // Resets list to an empty state (no nodes) and frees
 // any allocated memory in the process
 void reset_list(list *lst) {
+    if (lst->head == NULL){
+        return;
+    }
     int list_size = get_size(lst);
     if (list_size==1){
         node* curr = lst->head;
@@ -122,6 +130,9 @@ void reset_list(list *lst) {
 }
 
 int get_size(list *lst){
+    if (lst->head == NULL){
+        return 0;
+    }
     node* current = lst->head;
     if (current == NULL){
         return 0;
