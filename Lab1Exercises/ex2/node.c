@@ -109,7 +109,6 @@ void reset_list(list *lst) {
     int list_size = get_size(lst);
     if (list_size==1){
         node* curr = lst->head;
-        free(curr->next);
         free(curr);
         lst->head = NULL;
         return;
@@ -121,9 +120,7 @@ void reset_list(list *lst) {
         curr = next;
         next = next->next;
     }
-    free(next->next);
     free(next);
-    free(curr->next);
     free(curr);
     lst->head = NULL;
 }
