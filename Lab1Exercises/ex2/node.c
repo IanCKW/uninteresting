@@ -66,7 +66,6 @@ void delete_node_at(list *lst, int index) {
         prev->next = deleted->next; // if index is at the end of the list, prev-> will change to lst.head
     }
     free(deleted);
-    free(deleted);
     size_of_list--; // the list has shrunk by 1
     node *tail_node_pointer = get_tail(lst, size_of_list);
     tail_node_pointer->next = lst->head;
