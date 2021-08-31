@@ -46,6 +46,7 @@ int main(int argc, char **argv) { // double pointer as it's a nested array
     FILE *fPointer;
     fPointer = fopen(fname,"r"); // returns a pointer to the file descriptor. "r" means read only
     if (fPointer == NULL){
+        fclose(fPointer);
         return;
     }
     list *lst = (list *)malloc(sizeof(list));
@@ -56,7 +57,11 @@ int main(int argc, char **argv) { // double pointer as it's a nested array
     while(!feof(fPointer)){ //while the file pointer is not at the end of the file
         fgets(line,255,fPointer);
         sscanf(line,"%d",&instr);
+        if (strlen(line) == 0){
+            break;
+        }
         run_instruction(lst, instr, line);
+        line[0] = '\0';
     }
     
     reset_list(lst);
