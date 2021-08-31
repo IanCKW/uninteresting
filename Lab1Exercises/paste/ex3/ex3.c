@@ -56,7 +56,11 @@ int main(int argc, char **argv) { // double pointer as it's a nested array
     while(!feof(fPointer)){ //while the file pointer is not at the end of the file
         fgets(line,255,fPointer);
         sscanf(line,"%d",&instr);
+        if (strlen(line) == 0){
+            break;
+        }
         run_instruction(lst, instr, line);
+        line[0] = '\0';
     }
     
     reset_list(lst);
