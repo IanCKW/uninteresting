@@ -13,7 +13,15 @@ void my_init(void) {
 }
 
 void my_process_command(size_t num_tokens, char **tokens) {
-    // Your code here, refer to the lab document for a description of the arguments
+    int result = fork();
+    if (pid == -1){
+        printf("Fork Error \n");
+        exit(-1);
+    }
+    else if (result == 0){
+        execv(tokens[0], &tokens[0]);
+    }
+    wait(NULL);
 }
 
 void my_quit(void) {
