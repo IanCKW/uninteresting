@@ -15,23 +15,33 @@
 #define RUNNING_STATUS -1
 #define DEFAULT_EXIT_STATUS 0
 
-//void load_info(void);
-//void print_info(void);
+void load_info(int , int );
+void check_running();
+void print_info(void);
 
 int pid_status[50][3];
 int num_processes = 0;
 
 
 void my_init(void) {
-    
 }
 
 void my_process_command(size_t num_tokens, char **tokens) {
+
     if (strcmp(tokens[0], "info") == 0){
         check_running();
         print_info();
         return;
     }
+    if (strcmp(tokens[0], "wait") == 0){
+        wait_for(tokens[1]);
+        return;
+    }
+    if (strcmp(tokens[0], "terminate") == 0){
+        terminate_for(tokens[1]);
+        return;
+    }
+
 
     int isBackground = 0;
     if (tokens[num_tokens-2][0] == '&') { // '' for char!
@@ -93,7 +103,7 @@ void check_running(){
             int *status_ptr;            
             if(waitpid(pid_status[i][0], &status_ptr, WNOHANG ) != 0){
                 pid_status[i][1] = EXIT;
-                pid_status[i][2] = status_ptr;
+                pid_status[i][2] = DEFAULT_EXIT_STATUS; // this for now
             }
         }
     }
@@ -115,6 +125,28 @@ void print_info(void) {
     }
     free(status);
     free(exit_status);
-
 }
 
+void wait_for(char *pid_str){
+    int pid;
+    sscanf(pid_str, "%d", &pid);
+    int status_ptr;
+    // check if pid is valid
+    for (int i = 0; i < num_processes; i++){
+        if (pid_status[i][0] == pid & pid_status[i][1] == RUNNING){
+            waitpid(pid, &status_ptr,WCONTINUED);
+        }
+    }
+    return;
+}
+
+void terminate_for(char *pid_str){
+    int pid;
+    sscanf(pid_str, "%d", &pid);
+    for (int i = 0; i < num_processes; i++){
+        if (pid_status[i][0] == pid & pid_status[i][1] == RUNNING){
+            kill(pid,SIGTERM);
+        }
+    }
+    return;
+}
