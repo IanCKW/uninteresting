@@ -19,6 +19,11 @@
 #define TERMINATING 2
 #define RUNNING_STATUS -1
 #define DEFAULT_EXIT_STATUS 0
+#define EXECUTED 0
+#define NOT_EXECUTED -1
+#define EXECUTED_FAILURE -2
+
+
 
 void load_info(int , int );
 void check_running();
@@ -27,6 +32,7 @@ void execute_tokens(char **, int );
 
 int pid_status[50][3];
 int num_processes = 0;
+int execute_status = EXECUTED;
 
 
 void my_init(void) {
@@ -52,8 +58,7 @@ void my_process_command(size_t num_tokens, char **tokens) {
         execute_tokens(tokens, BACKGROUND);
         return;
     }
-    else if (check_chain(num_tokens,tokens) != 0){
-        int count = check_chain(num_tokens,tokens);
+    else if (check_chain(num_tokens,tokens) > 0){
         handle_chain(num_tokens, tokens);
     }
     else{
@@ -63,8 +68,8 @@ void my_process_command(size_t num_tokens, char **tokens) {
 }
 
 void execute_tokens(char **tokens, int background){
+    execute_status = EXECUTED;
     int pid = fork();
-    
     if (pid == -1){
         printf("Fork Error \n");
         exit(-1);
@@ -73,20 +78,34 @@ void execute_tokens(char **tokens, int background){
         int executed = execv(tokens[0], &tokens[0]);
         if (executed == -1){
             printf("%s not found \n", tokens[0]);
+            execute_status = NOT_EXECUTED;
             return;
         }
-        exit(0);
+        quit(-1);
     }
     if (background == NOT_BACKGROUND){
         int exit_status;
         wait(&exit_status);
-        if (WIFEXITED(exit_status)) { load_info(pid, WEXITSTATUS(exit_status));}            
-        else { load_info(pid, 0); }
+        printf("%i", execute_status);
+        if (execute_status == NOT_EXECUTED) return;
+        if (WIFEXITED(exit_status)) { 
+            load_info(pid, WEXITSTATUS(exit_status));
+        }            
+        else { 
+            load_info(pid, 0); 
+        }
+
+        if (exit_status != 0 ) { 
+            execute_status = EXECUTED_FAILURE;
+            return;
+        }
     }
     else{
         printf("Child[%i] in background \n", pid);
         load_info(pid, RUNNING_STATUS);
     }
+    execute_status = EXECUTED;
+    return;
 }
 
 void set_background(size_t num_tokens, char **tokens){
@@ -104,10 +123,8 @@ void my_quit(void) {
     }
     int count =0;
     while (count < num_processes){
-        if (waitpid(pid_status[count % num_processes][0], NULL, WNOHANG ) == 0){
-            count = 0;
-        }
-        else{count ++;}
+        while(waitpid(pid_status[count][0], NULL, WNOHANG ) == 0);
+        count ++;
     }
     printf("Goodbye!\n");
     exit(0);
@@ -208,11 +225,21 @@ void handle_chain(size_t num_tokens,char **tokens){
         if (!tokens[i]){
             sub_tokens[j] = NULL;
             execute_tokens(sub_tokens, NOT_BACKGROUND);
-            j = 0;
+            if (execute_status == EXECUTED_FAILURE){
+                printf("%s failed \n", sub_tokens[0]);
+            }
+            break;
         }
         else if (strcmp(tokens[i], "&&") == 0) {
             sub_tokens[j] = NULL;
             execute_tokens(sub_tokens, NOT_BACKGROUND);
+            if (execute_status == NOT_EXECUTED){
+                break;
+            }
+            else if (execute_status == EXECUTED_FAILURE){
+                printf("%s failed \n", sub_tokens[0]);
+                break;
+            }
             j = 0;
         }
         else {
@@ -221,6 +248,7 @@ void handle_chain(size_t num_tokens,char **tokens){
         }
         i++;
     }
+    execute_status = EXECUTED;
 
     for (int i = 0; i < num_tokens; i++){
         free(sub_tokens[i]);
