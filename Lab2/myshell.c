@@ -10,8 +10,11 @@
 #include <errno.h>
 #include <sys/wait.h>
 
+#define BACKGROUND 1
+#define NOT_BACKGROUND 0
 #define EXIT 0
 #define RUNNING 1
+#define TERMINATING 2
 #define RUNNING_STATUS -1
 #define DEFAULT_EXIT_STATUS 0
 
@@ -33,24 +36,25 @@ void my_process_command(size_t num_tokens, char **tokens) {
         print_info();
         return;
     }
-    if (strcmp(tokens[0], "wait") == 0){
+    else if (strcmp(tokens[0], "wait") == 0){
         wait_for(tokens[1]);
         return;
     }
-    if (strcmp(tokens[0], "terminate") == 0){
+    else if (strcmp(tokens[0], "terminate") == 0){
         terminate_for(tokens[1]);
         return;
     }
-
-
-    int isBackground = 0;
-    if (tokens[num_tokens-2][0] == '&') { // '' for char!
-        isBackground = 1;
-        tokens = realloc(tokens, (num_tokens - 1) * sizeof(char *));
-        num_tokens -= 1;
-        tokens[num_tokens-1] = NULL;
+    else if (tokens[num_tokens-2][0] == '&'){
+        set_background(num_tokens, tokens);
+        execute_tokens(num_tokens, tokens, BACKGROUND);
     }
+    else{
+        execute_tokens(num_tokens, tokens, NOT_BACKGROUND);
+        return;
+    }
+}
 
+void execute_tokens(size_t num_tokens, char **tokens, int background){
     int pid = fork();
     
     if (pid == -1){
@@ -65,8 +69,7 @@ void my_process_command(size_t num_tokens, char **tokens) {
         }
         exit(0);
     }
-    
-    if (isBackground == 0){
+    if (background == NOT_BACKGROUND){
         int exit_status;
         wait(&exit_status);
         if (WIFEXITED(exit_status)) { load_info(pid, WEXITSTATUS(exit_status));}            
@@ -78,10 +81,28 @@ void my_process_command(size_t num_tokens, char **tokens) {
     }
 }
 
+void set_background(size_t num_tokens, char **tokens){
+    tokens = realloc(tokens, (num_tokens - 1) * sizeof(char *));
+    num_tokens -= 1;
+    tokens[num_tokens-1] = NULL;
+}
+
+
 void my_quit(void) {
+    for (int i=0; i<num_processes; i++){
+        if (pid_status[i][1] == RUNNING){
+            kill(pid_status[i][0], SIGTERM);
+        }
+    }
+    int count =0;
+    while (count < num_processes){
+        if (waitpid(pid_status[count % num_processes][0], NULL, WNOHANG ) == 0){
+            count = 0;
+        }
+        else{count ++;}
+    }
     printf("Goodbye!\n");
     exit(0);
-    
 }
 
 void load_info(int pid, int status) {
@@ -99,13 +120,14 @@ void load_info(int pid, int status) {
 
 void check_running(){
     for (int i=0; i < num_processes; i++){
-        if (pid_status[i][1] == RUNNING) {
+        if (pid_status[i][1] == RUNNING | pid_status[i][1] == TERMINATING) {
             int *status_ptr;            
             if(waitpid(pid_status[i][0], &status_ptr, WNOHANG ) != 0){
                 pid_status[i][1] = EXIT;
                 pid_status[i][2] = DEFAULT_EXIT_STATUS; // this for now
             }
         }
+
     }
 }
 
@@ -113,8 +135,13 @@ void print_info(void) {
     char *status = malloc(256); 
     char *exit_status = malloc(256);
     for (int i=0; i<num_processes; i++){    
-        if (pid_status[i][1] == RUNNING){
+        int pid = pid_status[i][1];
+        if (pid == RUNNING){
             strcpy(status, "Running"); // this is useful for reallocating strings eh
+            strcpy(exit_status, "");
+        }
+        else if (pid == TERMINATING){
+            strcpy(status, "Terminating"); // this is useful for reallocating strings eh
             strcpy(exit_status, "");
         }
         else{
@@ -146,6 +173,7 @@ void terminate_for(char *pid_str){
     for (int i = 0; i < num_processes; i++){
         if (pid_status[i][0] == pid & pid_status[i][1] == RUNNING){
             kill(pid,SIGTERM);
+            pid_status[i][1] = TERMINATING;
         }
     }
     return;
