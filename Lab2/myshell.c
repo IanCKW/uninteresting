@@ -9,6 +9,8 @@
 #include "myshell.h"
 #include <errno.h>
 #include <sys/wait.h>
+#include <stdio.h>
+#include <string.h>
 
 #define BACKGROUND 1
 #define NOT_BACKGROUND 0
@@ -21,6 +23,7 @@
 void load_info(int , int );
 void check_running();
 void print_info(void);
+void execute_tokens(char **, int );
 
 int pid_status[50][3];
 int num_processes = 0;
@@ -44,17 +47,22 @@ void my_process_command(size_t num_tokens, char **tokens) {
         terminate_for(tokens[1]);
         return;
     }
-    else if (tokens[num_tokens-2][0] == '&'){
-        set_background(num_tokens, tokens);
-        execute_tokens(num_tokens, tokens, BACKGROUND);
+    else if (strcmp(tokens[num_tokens-2], "&") == 0){
+        set_background(num_tokens, tokens); // arrays are passed by address! no need to use &
+        execute_tokens(tokens, BACKGROUND);
+        return;
+    }
+    else if (check_chain(num_tokens,tokens) != 0){
+        int count = check_chain(num_tokens,tokens);
+        handle_chain(num_tokens, tokens);
     }
     else{
-        execute_tokens(num_tokens, tokens, NOT_BACKGROUND);
+        execute_tokens(tokens, NOT_BACKGROUND);
         return;
     }
 }
 
-void execute_tokens(size_t num_tokens, char **tokens, int background){
+void execute_tokens(char **tokens, int background){
     int pid = fork();
     
     if (pid == -1){
@@ -177,4 +185,45 @@ void terminate_for(char *pid_str){
         }
     }
     return;
+}
+
+int check_chain(size_t num_tokens,char **tokens){
+    int count = 0;
+    for (int i = 0; i < num_tokens - 1; i++){ // last element is NULL
+        if (strcmp(tokens[i], "&&") == 0){
+            count++;
+        }
+    }
+    return count;
+}
+
+void handle_chain(size_t num_tokens,char **tokens){
+    char **sub_tokens = malloc((num_tokens) * sizeof(char *));
+    for (int i = 0; i < num_tokens; i++){
+        sub_tokens[i] = malloc(256);
+    }
+    int i = 0;
+    int j = 0;
+    while(i < num_tokens){
+        if (!tokens[i]){
+            sub_tokens[j] = NULL;
+            execute_tokens(sub_tokens, NOT_BACKGROUND);
+            j = 0;
+        }
+        else if (strcmp(tokens[i], "&&") == 0) {
+            sub_tokens[j] = NULL;
+            execute_tokens(sub_tokens, NOT_BACKGROUND);
+            j = 0;
+        }
+        else {
+            strcpy(sub_tokens[j], tokens[i]); 
+            j++;
+        }
+        i++;
+    }
+
+    for (int i = 0; i < num_tokens; i++){
+        free(sub_tokens[i]);
+    }
+    free(sub_tokens);
 }
