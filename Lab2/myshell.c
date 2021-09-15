@@ -11,6 +11,7 @@
 #include <sys/wait.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #define BACKGROUND 1
 #define NOT_BACKGROUND 0
@@ -69,6 +70,12 @@ void my_process_command(size_t num_tokens, char **tokens) {
 
 void execute_tokens(char **tokens, int background){
     execute_status = EXECUTED;
+    if (access(tokens[0], X_OK) != 0) {
+        printf("%s not found \n", tokens[0]);
+        execute_status = NOT_EXECUTED;
+        return;
+    }
+    execute_status = EXECUTED;
     int pid = fork();
     if (pid == -1){
         printf("Fork Error \n");
@@ -76,19 +83,14 @@ void execute_tokens(char **tokens, int background){
     }
     else if (pid == 0){
         int executed = execv(tokens[0], &tokens[0]);
-        if (executed == -1){
-            printf("%s not found \n", tokens[0]);
-            execute_status = NOT_EXECUTED;
-            return;
-        }
-        quit(-1);
+        exit(0);
     }
+
+    if (execute_status == NOT_EXECUTED) return;
     if (background == NOT_BACKGROUND){
         int exit_status;
         wait(&exit_status);
-        printf("%i", execute_status);
-        if (execute_status == NOT_EXECUTED) return;
-        if (WIFEXITED(exit_status)) { 
+            if (WIFEXITED(exit_status)) { 
             load_info(pid, WEXITSTATUS(exit_status));
         }            
         else { 
@@ -157,8 +159,8 @@ void check_running(){
 }
 
 void print_info(void) {
-    char *status = malloc(256); 
-    char *exit_status = malloc(256);
+    char *status = malloc(60); 
+    char *exit_status = malloc(60);
     for (int i=0; i<num_processes; i++){    
         int pid = pid_status[i][1];
         if (pid == RUNNING){
