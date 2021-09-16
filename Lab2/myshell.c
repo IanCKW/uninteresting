@@ -69,13 +69,23 @@ void my_process_command(size_t num_tokens, char **tokens) {
 }
 
 void execute_tokens(char **tokens, int background){
+    if(!check_valid_program(tokens)) return;
+    int pid = fork_and_exec(tokens);
     execute_status = EXECUTED;
+    load_process(pid, background);
+    return;
+}
+
+int check_valid_program(char **tokens){
     if (access(tokens[0], X_OK) != 0) {
         printf("%s not found \n", tokens[0]);
         execute_status = NOT_EXECUTED;
-        return;
+        return 0;
     }
-    execute_status = EXECUTED;
+    return 1;
+}
+
+int fork_and_exec(char ** tokens){
     int pid = fork();
     if (pid == -1){
         printf("Fork Error \n");
@@ -85,29 +95,21 @@ void execute_tokens(char **tokens, int background){
         int executed = execv(tokens[0], &tokens[0]);
         exit(0);
     }
+    return pid;
+}
 
-    if (execute_status == NOT_EXECUTED) return;
+void load_process(int pid, int background){
     if (background == NOT_BACKGROUND){
         int exit_status;
         wait(&exit_status);
-            if (WIFEXITED(exit_status)) { 
-            load_info(pid, WEXITSTATUS(exit_status));
-        }            
-        else { 
-            load_info(pid, 0); 
-        }
-
-        if (exit_status != 0 ) { 
-            execute_status = EXECUTED_FAILURE;
-            return;
-        }
+        if (WIFEXITED(exit_status))load_info(pid, WEXITSTATUS(exit_status));         
+        else load_info(pid, 0); 
+        if (exit_status != 0 ) execute_status = EXECUTED_FAILURE;
     }
     else{
         printf("Child[%i] in background \n", pid);
         load_info(pid, RUNNING_STATUS);
     }
-    execute_status = EXECUTED;
-    return;
 }
 
 void set_background(size_t num_tokens, char **tokens){
@@ -221,36 +223,47 @@ void handle_chain(size_t num_tokens,char **tokens){
     for (int i = 0; i < num_tokens; i++){
         sub_tokens[i] = malloc(256);
     }
+    // int i = 0;
+    // int j = 0;
+    // while(i < num_tokens){
+    //     if (!tokens[i]){
+    //         sub_tokens[j] = NULL;
+    //         execute_tokens(sub_tokens, NOT_BACKGROUND);
+    //     }
+    //     else if (strcmp(tokens[i], "&&") == 0) {
+    //         sub_tokens[j] = NULL;
+    //         execute_tokens(sub_tokens, NOT_BACKGROUND);
+    //         if (execute_status == NOT_EXECUTED){
+    //             break;
+    //         }
+    //         else if (execute_status == EXECUTED_FAILURE){
+    //             printf("%s failed \n", sub_tokens[0]);
+    //             break;
+    //         }
+    //         j = 0;
+    //     }
+    //     else {
+    //         strcpy(sub_tokens[j], tokens[i]); 
+    //         j++;
+    //     }
+    //     i++;
+    // }
+
     int i = 0;
-    int j = 0;
     while(i < num_tokens){
-        if (!tokens[i]){
-            sub_tokens[j] = NULL;
-            execute_tokens(sub_tokens, NOT_BACKGROUND);
-            if (execute_status == EXECUTED_FAILURE){
-                printf("%s failed \n", sub_tokens[0]);
-            }
-            break;
-        }
-        else if (strcmp(tokens[i], "&&") == 0) {
-            sub_tokens[j] = NULL;
-            execute_tokens(sub_tokens, NOT_BACKGROUND);
-            if (execute_status == NOT_EXECUTED){
+        for(int j = 0; j < num_tokens; j++){
+            if(tokens[i] == NULL || strcmp(tokens[i],"&&") == 0) {
+                sub_tokens[j] = NULL;
                 break;
             }
-            else if (execute_status == EXECUTED_FAILURE){
-                printf("%s failed \n", sub_tokens[0]);
-                break;
-            }
-            j = 0;
+            strcpy(sub_tokens[j], tokens[i]);
+            i++;
         }
-        else {
-            strcpy(sub_tokens[j], tokens[i]); 
-            j++;
-        }
+        execute_tokens(sub_tokens, NOT_BACKGROUND);
+        if (execute_status == EXECUTED_FAILURE) printf("%s failed \n", sub_tokens[0]);
+        if (execute_status != EXECUTED) break;
         i++;
     }
-    execute_status = EXECUTED;
 
     for (int i = 0; i < num_tokens; i++){
         free(sub_tokens[i]);
