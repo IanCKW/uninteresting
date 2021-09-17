@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #define BACKGROUND 1
 #define NOT_BACKGROUND 0
@@ -55,11 +56,11 @@ void my_process_command(size_t num_tokens, char **tokens) {
         return;
     }
     else if (strcmp(tokens[num_tokens-2], "&") == 0){
-        set_background(num_tokens, tokens); // arrays are passed by address! no need to use &
+        set_background(num_tokens, tokens);
         execute_tokens(tokens, BACKGROUND);
         return;
     }
-    else if (check_chain(num_tokens,tokens) > 0){
+    else if (check_chain(num_tokens, tokens) > 0){
         handle_chain(num_tokens, tokens);
     }
     else{
@@ -69,10 +70,22 @@ void my_process_command(size_t num_tokens, char **tokens) {
 }
 
 void execute_tokens(char **tokens, int background){
+    int saved_stdout = dup(STDOUT_FILENO);
+    int saved_stdin = dup(STDIN_FILENO);
+    int saved_stderr = dup(STDERR_FILENO);
+
     if(!check_valid_program(tokens)) return;
+    if(!check_in_file(tokens)) return;
+    handle_write_errors(tokens);
+    handle_write_output(tokens);
     int pid = fork_and_exec(tokens);
     execute_status = EXECUTED;
     load_process(pid, background);
+
+    dup2(saved_stdout, STDOUT_FILENO);
+    dup2(saved_stdin, STDIN_FILENO);
+    dup2(saved_stderr, STDERR_FILENO);
+    if(background == BACKGROUND) {printf("Child[%i] in background \n", pid);}
     return;
 }
 
@@ -85,14 +98,87 @@ int check_valid_program(char **tokens){
     return 1;
 }
 
+int check_in_file(char **tokens){
+    if (!tokens[1] || !tokens[2]) return 1;
+    if (strcmp(tokens[1],"<") ==0 && access(tokens[2],F_OK) != 0){
+        printf("%s does not exist \n", tokens[2]);
+        return 0;
+    }
+    return 1;
+}
+
+void handle_file_input(char **tokens){
+    int count = 0;
+    int i =0;
+    while(tokens[i] != NULL){
+        if (strcmp(tokens[i],"<")==0) count = i;
+        i++;
+    }
+    if (count > 0){
+        int f = open( tokens[2], O_RDONLY, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH );
+        if (f == -1) { 
+            perror ("open failed");
+            close(f);
+            return;
+        }
+        if( dup2(f, STDIN_FILENO) == -1) perror("dup2 failed");
+        close(f);
+        tokens[1] = NULL;
+    }
+}
+
+void handle_write_output(char **tokens){
+    int count = 0;
+    int i = 0;
+    while(tokens[i] != NULL){
+        if(strcmp(tokens[i],">")==0) count = i;
+        i++;
+    }
+    if (count > 0){
+        int f = open(tokens[count+1], O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+        if (f == -1){
+            perror("creat failed");
+            close(f);
+            return;
+        }
+        if( dup2(f, STDOUT_FILENO) == -1) perror("dup2 failed");
+        tokens[count] = NULL;
+        close(f);
+    }
+}
+
+void handle_write_errors(char **tokens){
+    int count = 0;
+    int i =0;
+    while(tokens[i] != NULL){
+        if (strcmp(tokens[i],"2>")==0) count = i;
+        i++;
+    }
+    if (count > 0){
+        int f = open(tokens[count+1], O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+        if (f == -1){
+            perror("creat failed");
+            close(f);
+            return;
+        }
+        if (dup2(f, STDERR_FILENO) == -1) perror("dup2 failed");
+        tokens[count] = NULL;
+        close(f);
+    }
+}
+
+
+
 int fork_and_exec(char ** tokens){
+    
     int pid = fork();
     if (pid == -1){
         printf("Fork Error \n");
         exit(-1);
     }
     else if (pid == 0){
-        int executed = execv(tokens[0], &tokens[0]);
+        handle_file_input(tokens);
+        int executed = execvp(tokens[0], &tokens[0]);
         exit(0);
     }
     return pid;
@@ -107,15 +193,13 @@ void load_process(int pid, int background){
         if (exit_status != 0 ) execute_status = EXECUTED_FAILURE;
     }
     else{
-        printf("Child[%i] in background \n", pid);
         load_info(pid, RUNNING_STATUS);
     }
 }
 
-void set_background(size_t num_tokens, char **tokens){
+void set_background(int num_tokens, char **tokens){
     tokens = realloc(tokens, (num_tokens - 1) * sizeof(char *));
-    num_tokens -= 1;
-    tokens[num_tokens-1] = NULL;
+    tokens[num_tokens-2] = NULL;
 }
 
 
@@ -187,7 +271,6 @@ void wait_for(char *pid_str){
     int pid;
     sscanf(pid_str, "%d", &pid);
     int status_ptr;
-    // check if pid is valid
     for (int i = 0; i < num_processes; i++){
         if (pid_status[i][0] == pid & pid_status[i][1] == RUNNING){
             waitpid(pid, &status_ptr,WCONTINUED);
@@ -208,7 +291,7 @@ void terminate_for(char *pid_str){
     return;
 }
 
-int check_chain(size_t num_tokens,char **tokens){
+int check_chain(int num_tokens,char **tokens){
     int count = 0;
     for (int i = 0; i < num_tokens - 1; i++){ // last element is NULL
         if (strcmp(tokens[i], "&&") == 0){
@@ -218,50 +301,32 @@ int check_chain(size_t num_tokens,char **tokens){
     return count;
 }
 
-void handle_chain(size_t num_tokens,char **tokens){
-    char **sub_tokens = malloc((num_tokens) * sizeof(char *));
+void handle_chain(int num_tokens,char **tokens){
+    char **sub_tokens = malloc(num_tokens * sizeof(tokens[0]));
     for (int i = 0; i < num_tokens; i++){
-        sub_tokens[i] = malloc(256);
+        sub_tokens[i] = malloc(num_tokens * sizeof(tokens[0]));
     }
-    // int i = 0;
-    // int j = 0;
-    // while(i < num_tokens){
-    //     if (!tokens[i]){
-    //         sub_tokens[j] = NULL;
-    //         execute_tokens(sub_tokens, NOT_BACKGROUND);
-    //     }
-    //     else if (strcmp(tokens[i], "&&") == 0) {
-    //         sub_tokens[j] = NULL;
-    //         execute_tokens(sub_tokens, NOT_BACKGROUND);
-    //         if (execute_status == NOT_EXECUTED){
-    //             break;
-    //         }
-    //         else if (execute_status == EXECUTED_FAILURE){
-    //             printf("%s failed \n", sub_tokens[0]);
-    //             break;
-    //         }
-    //         j = 0;
-    //     }
-    //     else {
-    //         strcpy(sub_tokens[j], tokens[i]); 
-    //         j++;
-    //     }
-    //     i++;
-    // }
 
     int i = 0;
+    int j = 0;
     while(i < num_tokens){
-        for(int j = 0; j < num_tokens; j++){
+        while(j < num_tokens){
             if(tokens[i] == NULL || strcmp(tokens[i],"&&") == 0) {
                 sub_tokens[j] = NULL;
                 break;
             }
             strcpy(sub_tokens[j], tokens[i]);
+            j++;
             i++;
         }
-        execute_tokens(sub_tokens, NOT_BACKGROUND);
         if (execute_status == EXECUTED_FAILURE) printf("%s failed \n", sub_tokens[0]);
         if (execute_status != EXECUTED) break;
+        
+        for (int k = 0; k < num_tokens; k++){
+            free(sub_tokens[k]);
+            sub_tokens[k] = malloc(num_tokens * sizeof(tokens[0]));
+        }
+        j = 0;
         i++;
     }
 
@@ -270,3 +335,29 @@ void handle_chain(size_t num_tokens,char **tokens){
     }
     free(sub_tokens);
 }
+
+// fPointer = fopen(fname,"r"); // returns a pointer to the file descriptor. "r" means read only
+//     if (fPointer == NULL){
+//         fclose(fPointer);
+//         return;
+//     }
+
+// int fw=open("chinaisbetter.txt", O_APPEND|O_WRONLY);
+// in child process
+// dup2(fileno(someopenfile), STDIN_FILENO);
+// STDIN_FILENO
+// STDOUT_FILENO
+// STDERR_FILENO
+
+//O_RDONLY, O_WRONLY, or O_RDWR.  These request opening the
+//      file read-only, write-only, or read/write, respectively
+
+// if (dup2(in, 0) == -1) {
+//     perror("dup2 failed");
+//     exit(1);
+// }
+
+// use execvp
+//creat()
+    //    A call to creat() is equivalent to calling open() with flags
+    //    equal to O_CREAT|O_WRONLY|O_TRUNC.

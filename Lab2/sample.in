@@ -1,0 +1,1 @@
+/bin/printf world\nhello\n > ./a.txt && /bin/sort < ./a.txt > ./b.txt && /bin/cat ./b.txt
