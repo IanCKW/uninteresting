@@ -4,6 +4,7 @@
  * This file contains function definitions. Your implementation should go in
  * this file.
  */
+#include <stdlib.h>
 #include <sys/types.h>
 #include <signal.h>
 #include "myshell.h"
@@ -24,6 +25,8 @@
 #define EXECUTED 0
 #define NOT_EXECUTED -1
 #define EXECUTED_FAILURE -2
+#define NOT_CHAIN 0
+#define CHAIN -1
 
 
 
@@ -35,13 +38,14 @@ void execute_tokens(char **, int );
 int pid_status[50][3];
 int num_processes = 0;
 int execute_status = EXECUTED;
+int is_chain = NOT_CHAIN;
 
 
 void my_init(void) {
 }
 
 void my_process_command(size_t num_tokens, char **tokens) {
-
+    is_chain = NOT_CHAIN;
     if (strcmp(tokens[0], "info") == 0){
         check_running();
         print_info();
@@ -61,6 +65,7 @@ void my_process_command(size_t num_tokens, char **tokens) {
         return;
     }
     else if (check_chain(num_tokens, tokens) > 0){
+        is_chain = CHAIN;
         handle_chain(num_tokens, tokens);
     }
     else{
@@ -123,6 +128,7 @@ void handle_file_input(char **tokens){
         }
         if( dup2(f, STDIN_FILENO) == -1) perror("dup2 failed");
         close(f);
+        if(is_chain == CHAIN) free(tokens[1]);
         tokens[1] = NULL;
     }
 }
@@ -142,6 +148,7 @@ void handle_write_output(char **tokens){
             return;
         }
         if( dup2(f, STDOUT_FILENO) == -1) perror("dup2 failed");
+        if(is_chain == CHAIN) free(tokens[count]);
         tokens[count] = NULL;
         close(f);
     }
@@ -162,6 +169,7 @@ void handle_write_errors(char **tokens){
             return;
         }
         if (dup2(f, STDERR_FILENO) == -1) perror("dup2 failed");
+        if(is_chain == CHAIN) free(tokens[count]);
         tokens[count] = NULL;
         close(f);
     }
@@ -198,7 +206,7 @@ void load_process(int pid, int background){
 }
 
 void set_background(int num_tokens, char **tokens){
-    tokens = realloc(tokens, (num_tokens - 1) * sizeof(char *));
+    tokens = realloc(tokens, (num_tokens - ) * sizeof(tokens[0]));
     tokens[num_tokens-2] = NULL;
 }
 
@@ -312,6 +320,7 @@ void handle_chain(int num_tokens,char **tokens){
     while(i < num_tokens){
         while(j < num_tokens){
             if(tokens[i] == NULL || strcmp(tokens[i],"&&") == 0) {
+                free(sub_tokens[j]);
                 sub_tokens[j] = NULL;
                 break;
             }
@@ -319,6 +328,7 @@ void handle_chain(int num_tokens,char **tokens){
             j++;
             i++;
         }
+        execute_tokens(sub_tokens, NOT_BACKGROUND);
         if (execute_status == EXECUTED_FAILURE) printf("%s failed \n", sub_tokens[0]);
         if (execute_status != EXECUTED) break;
         
