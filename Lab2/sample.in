@@ -1,9 +1,2 @@
-/bin/cat ./programs/result > ./a.txt
-/bin/cat ./a.txt
-/bin/sort < ./a.txt > ./b.txt &
-/bin/cat ./b.txt
- /bin/sort < ./doesnotexist.txt
- /bin/printf world\nhello\n > ./a.txt && /bin/sort < ./a.txt > ./b.txt && /bin/cat ./b.txt
- /bin/echo hello && /bin/sort < ./doesnotexist.txt 
- /bin/sleep notanumber 2> ./a.txt && /bin/echo Hello
- /bin/cat ./a.txt
+
+/bin/echo hello &

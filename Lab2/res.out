@@ -1,17 +1,3 @@
-myshell> myshell> #!/bin/bash
-result=$1
-exit $result
-myshell> Child[3597814] in background 
-myshell> myshell> ./doesnotexist.txt does not exist 
-myshell> #!/bin/bash
-exit $result
-result=$1
-myshell> hello
-world
-./doesnotexist.txt does not exist 
-myshell> hello
-/bin/echo failed 
-myshell> Hello
+myshell> myshell> Child[1691655] in background 
 myshell> End of commands; shutting down
-/bin/sleep: invalid time interval ‘notanumber’
-Try '/bin/sleep --help' for more information.
+hello &

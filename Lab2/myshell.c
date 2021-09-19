@@ -206,7 +206,7 @@ void load_process(int pid, int background){
 }
 
 void set_background(int num_tokens, char **tokens){
-    tokens = realloc(tokens, (num_tokens - ) * sizeof(tokens[0]));
+    tokens = realloc(tokens, (num_tokens - 1) * sizeof(tokens[0]));
     tokens[num_tokens-2] = NULL;
 }
 
