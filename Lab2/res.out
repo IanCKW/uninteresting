@@ -1,3 +1,10 @@
-myshell> myshell> Child[1691655] in background 
-myshell> End of commands; shutting down
-hello &
+myshell> myshell> #!/bin/bash
+result=$1
+exit $result
+myshell> Child[2744420] in background 
+myshell> [2744412] Exited 0
+[2744419] Exited 0
+[2744420] Running 
+myshell> Child[2744421] in background 
+myshell> /bin/printf failed 
+myshell> Goodbye!

@@ -1,2 +1,8 @@
+/bin/cat ./programs/result > ./a.txt
+/bin/cat ./a.txt
+/bin/sleep &
+info
+/bin/sort < ./a.txt > ./b.txt &
+/bin/printf world\nhello\n > ./a.txt && /bin/sort < ./a.txt > ./b.txt && /bin/cat ./b.txt
+quit
 
-/bin/echo hello &

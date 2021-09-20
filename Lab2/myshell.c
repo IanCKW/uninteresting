@@ -206,7 +206,6 @@ void load_process(int pid, int background){
 }
 
 void set_background(int num_tokens, char **tokens){
-    tokens = realloc(tokens, (num_tokens - 1) * sizeof(tokens[0]));
     tokens[num_tokens-2] = NULL;
 }
 
@@ -223,7 +222,6 @@ void my_quit(void) {
         count ++;
     }
     printf("Goodbye!\n");
-    exit(0);
 }
 
 void load_info(int pid, int status) {
@@ -345,29 +343,3 @@ void handle_chain(int num_tokens,char **tokens){
     }
     free(sub_tokens);
 }
-
-// fPointer = fopen(fname,"r"); // returns a pointer to the file descriptor. "r" means read only
-//     if (fPointer == NULL){
-//         fclose(fPointer);
-//         return;
-//     }
-
-// int fw=open("chinaisbetter.txt", O_APPEND|O_WRONLY);
-// in child process
-// dup2(fileno(someopenfile), STDIN_FILENO);
-// STDIN_FILENO
-// STDOUT_FILENO
-// STDERR_FILENO
-
-//O_RDONLY, O_WRONLY, or O_RDWR.  These request opening the
-//      file read-only, write-only, or read/write, respectively
-
-// if (dup2(in, 0) == -1) {
-//     perror("dup2 failed");
-//     exit(1);
-// }
-
-// use execvp
-//creat()
-    //    A call to creat() is equivalent to calling open() with flags
-    //    equal to O_CREAT|O_WRONLY|O_TRUNC.
