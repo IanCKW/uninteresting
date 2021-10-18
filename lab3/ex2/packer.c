@@ -66,19 +66,22 @@ int pack_ball(int colour, int id) {
     *num_balls = *num_balls + 1;
     
     if (*num_balls == 2){
-        *num_balls = 0;
         sem_post(wait);
     }
-    sem_post(mutex);
-    // critical section
-    //printf("%d",id);
+    else{ 
+        sem_post(mutex);
+    }
 
     sem_wait(wait);
-    // int temp;
-    // for (int i =0; i<2; i++){
-    //     if (id != balls[i]) temp = balls[i];
-    // }
-    //printf("%d",id);
+    int temp;
+    for (int i =0; i<2; i++){
+        if (id != balls[i]) temp = balls[i];
+    }
+    *num_balls -=1;
     sem_post(wait);
-    return 0;
+    if (*num_balls == 0){
+        sem_post(mutex);
+    }
+
+    return temp;
 }
