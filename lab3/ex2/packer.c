@@ -82,6 +82,5 @@ int pack_ball(int colour, int id) {
     if (*num_balls == 0){
         sem_post(mutex);
     }
-
     return temp;
 }
